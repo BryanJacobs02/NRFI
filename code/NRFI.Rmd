@@ -28,6 +28,9 @@ if (!requireNamespace('pacman', quietly = TRUE)){
   install.packages('pacman')
 }
 pacman::p_load_current_gh("BillPetti/baseballr")
+
+pacman::p_load(tidyverse,
+               reticulate)
 ```
 
 model creation, training, testing, optimizing in Python
