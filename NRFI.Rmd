@@ -118,6 +118,9 @@ inning_1_final <- inning_1_data %>%
   left_join(away_pitchers_unique, by = c("game_pk", "away_team_name")) %>%
   mutate(NRFI = as.integer(home_runs == 0 & away_runs == 0)) %>%
   select(-home_runs, -away_runs)
+
+# write final data to a csv
+write.csv(inning_1_final, "inning_1_data.csv", row.names = FALSE)
 ```
 
 model creation, training, testing, optimizing in Python
