@@ -23,7 +23,6 @@ potentially cleaning / feature engineering
 
 ```{r}
 # Load Packages
-# You can install using the pacman package using the following code:
 if (!requireNamespace('pacman', quietly = TRUE)){
   install.packages('pacman')
 }
@@ -31,6 +30,45 @@ pacman::p_load_current_gh("BillPetti/baseballr")
 
 pacman::p_load(tidyverse,
                reticulate)
+```
+
+```{r}
+# Load data
+library(purrr)
+library(dplyr)
+
+# create a vector of game ids
+game_ids <- c(718778, 718779, 718780) # replace with massive list of desired game ids
+
+# obtain linescore data for each game id
+all_games_data <- map_df(game_ids, ~ mlb_game_linescore(.x))
+
+# filter to only inclue first inning data and desired columns
+# predictors must be stats known BEFORE game starts
+inning_1_data <- all_games_data %>%
+  filter(num == 1) %>%
+  select(game_pk, 
+         num, 
+         home_team_name, 
+         away_team_name,
+         home_runs,
+         away_runs,
+         home_team_record_wins, 
+         away_team_record_wins)
+
+# load and join weather data to inning 1 df
+weather_data <- map_df(game_ids, ~ mlb_game_info(.x))
+
+weather_data_clean <- weather_data %>%
+  select(game_pk,
+         venue_name,
+         temperature,
+         other_weather,
+         wind)
+
+# join weather data to inning 1 data
+inning_1_weather <- inning_1_data %>%
+  left_join(weather_data_clean, by = "game_pk")
 ```
 
 model creation, training, testing, optimizing in Python
