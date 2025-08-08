@@ -29,46 +29,56 @@ if (!requireNamespace('pacman', quietly = TRUE)){
 pacman::p_load_current_gh("BillPetti/baseballr")
 
 pacman::p_load(tidyverse,
-               reticulate)
+               reticulate,
+               purrr,
+               progress)
 ```
 
 ```{r}
-# Load data
-library(purrr)
-library(dplyr)
+# Massive list of game IDs
+game_ids <- c(718778, 718779, 718780) 
 
-# create a vector of game ids
-game_ids <- c(718778, 718779, 718780) # replace with massive list of desired game ids
+# Safe wrappers
+safe_linescore <- safely(mlb_game_linescore)
+safe_gameinfo  <- safely(mlb_game_info)
 
-# obtain linescore data for each game id
-all_games_data <- map_df(game_ids, ~ mlb_game_linescore(.x))
+# Progress bar
+pb <- progress_bar$new(total = length(game_ids))
 
-# filter to only inclue first inning data and desired columns
-# predictors must be stats known BEFORE game starts
+# Fetch inning-by-inning data
+all_games_data <- map_df(game_ids, ~ { pb$tick(); safe_linescore(.x)$result })
+
+# Filter to inning 1, keep only pre-game predictors + outcome vars for target creation
 inning_1_data <- all_games_data %>%
   filter(num == 1) %>%
   select(game_pk, 
          num, 
          home_team_name, 
          away_team_name,
-         home_runs,
+         home_runs,  # will be used for NRFI target
          away_runs,
          home_team_record_wins, 
          away_team_record_wins)
 
-# load and join weather data to inning 1 df
-weather_data <- map_df(game_ids, ~ mlb_game_info(.x))
+# Fetch weather data
+weather_data <- map_df(game_ids, ~ safe_gameinfo(.x)$result)
 
+# Clean and rename to avoid collisions
 weather_data_clean <- weather_data %>%
   select(game_pk,
          venue_name,
-         temperature,
-         other_weather,
-         wind)
+         temp_game = temperature,
+         weather_notes = other_weather,
+         wind_game = wind)
 
-# join weather data to inning 1 data
+# Join, create NRFI target, drop leak columns
 inning_1_weather <- inning_1_data %>%
-  left_join(weather_data_clean, by = "game_pk")
+  left_join(weather_data_clean, by = "game_pk") %>%
+  mutate(NRFI = as.integer(home_runs == 0 & away_runs == 0)) %>%
+  select(-home_runs, -away_runs)
+
+
+
 ```
 
 model creation, training, testing, optimizing in Python
