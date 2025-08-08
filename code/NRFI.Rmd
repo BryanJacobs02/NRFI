@@ -17,11 +17,21 @@ Data Set: baseballr
 
 Model: XGBoost
 
+Pull data from baseballr using R
+
+potentially cleaning / feature engineering
+
 ```{r}
-# Pull data from baseballr using R
-# potentially cleaning / feature engineering
+# Load Packages
+# You can install using the pacman package using the following code:
+if (!requireNamespace('pacman', quietly = TRUE)){
+  install.packages('pacman')
+}
+pacman::p_load_current_gh("BillPetti/baseballr")
 ```
 
+model creation, training, testing, optimizing in Python
+
 ```{python}
-# model creation, training, testing, optimizing in Python
+
 ```
