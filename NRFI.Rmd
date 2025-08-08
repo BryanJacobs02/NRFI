@@ -41,11 +41,12 @@ game_ids <- c(718778, 718779, 718780)
 # Safe wrappers
 safe_linescore <- safely(mlb_game_linescore)
 safe_gameinfo  <- safely(mlb_game_info)
+safe_probables <- safely(mlb_probables)
 
 # Progress bar
 pb <- progress_bar$new(total = length(game_ids))
 
-# Fetch inning-by-inning data
+# Fetch inning-by-inning data ################################################################
 all_games_data <- map_df(game_ids, ~ { pb$tick(); safe_linescore(.x)$result })
 
 # Filter to inning 1, keep only pre-game predictors + outcome vars for target creation
@@ -60,7 +61,7 @@ inning_1_data <- all_games_data %>%
          home_team_record_wins, 
          away_team_record_wins)
 
-# Fetch weather data
+# Fetch weather data #########################################################################
 weather_data <- map_df(game_ids, ~ safe_gameinfo(.x)$result)
 
 # Clean and rename to avoid collisions
@@ -71,14 +72,52 @@ weather_data_clean <- weather_data %>%
          weather_notes = other_weather,
          wind_game = wind)
 
-# Join, create NRFI target, drop leak columns
-inning_1_weather <- inning_1_data %>%
+# Fetch starting pitcher and umpire data #####################################################
+pitcher_data <- map_df(game_ids, ~ safe_probables(.x)$result)
+
+# Extract home and away teams from original data
+game_teams = all_games_data %>%
+  select(game_pk,
+         home_team_id,
+         away_team_id)
+
+# Join pitcher data with game_teams on game_pk
+pitcher_with_side <- pitcher_data %>%
+  left_join(game_teams, by = "game_pk") %>%
+  mutate(home_away = case_when(
+    team_id == home_team_id ~ "home",
+    team_id == away_team_id ~ "away",
+    TRUE ~ NA_character_
+  ))
+
+# Split pitchers to home and away
+home_pitchers <- pitcher_with_side %>%
+  filter(home_away == "home") %>%
+  select(game_pk, home_team_name = team, home_pitcher_name = fullName)
+
+away_pitchers <- pitcher_with_side %>%
+  filter(home_away == "away") %>%
+  select(game_pk, away_team_name = team, away_pitcher_name = fullName)
+
+# Extract unique rows
+home_pitchers_unique <- home_pitchers %>%
+  group_by(game_pk, home_team_name) %>%
+  slice(1) %>%  # keep only first row per group
+  ungroup()
+
+away_pitchers_unique <- away_pitchers %>%
+  group_by(game_pk, away_team_name) %>%
+  slice(1) %>%
+  ungroup()
+
+
+# Join, create NRFI target, drop leak columns ################################################
+inning_1_final <- inning_1_data %>%
   left_join(weather_data_clean, by = "game_pk") %>%
+  left_join(home_pitchers_unique, by = c("game_pk", "home_team_name")) %>%
+  left_join(away_pitchers_unique, by = c("game_pk", "away_team_name")) %>%
   mutate(NRFI = as.integer(home_runs == 0 & away_runs == 0)) %>%
   select(-home_runs, -away_runs)
-
-
-
 ```
 
 model creation, training, testing, optimizing in Python
