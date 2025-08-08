@@ -1,0 +1,27 @@
+---
+title: "NRFI Prediction Model"
+author: "Bryan Jacobs\nAiden Fletcher"
+date: "2025-08-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## NRFI Prediction Model
+
+Goal: Predict the probability of the occurrence of a No Run First Inning given any MLB match up.
+
+Data Set: baseballr
+
+Model: XGBoost
+
+```{r}
+# Pull data from baseballr using R
+# potentially cleaning / feature engineering
+```
+
+```{python}
+# model creation, training, testing, optimizing in Python
+```
