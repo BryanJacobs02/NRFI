@@ -69,8 +69,7 @@ weather_data_clean <- weather_data %>%
   select(game_pk,
          venue_name,
          temp_game = temperature,
-         weather_notes = other_weather,
-         wind_game = wind)
+         weather = other_weather)
 
 # Fetch starting pitcher and umpire data #####################################################
 pitcher_data <- map_df(game_ids, ~ safe_probables(.x)$result)
@@ -117,7 +116,7 @@ inning_1_final <- inning_1_data %>%
   left_join(home_pitchers_unique, by = c("game_pk", "home_team_name")) %>%
   left_join(away_pitchers_unique, by = c("game_pk", "away_team_name")) %>%
   mutate(NRFI = as.integer(home_runs == 0 & away_runs == 0)) %>%
-  select(-home_runs, -away_runs)
+  select(-home_runs, -away_runs, -game_pk, -num)
 
 # write final data to a csv
 write.csv(inning_1_final, "inning_1_data.csv", row.names = FALSE)
@@ -126,5 +125,6 @@ write.csv(inning_1_final, "inning_1_data.csv", row.names = FALSE)
 model creation, training, testing, optimizing in Python
 
 ```{python}
-
+# Import csv created in R
+# Encode categorical variables to prepare for model training
 ```

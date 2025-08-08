@@ -1,4 +1,4 @@
-"game_pk","num","home_team_name","away_team_name","home_team_record_wins","away_team_record_wins","venue_name","temp_game","weather_notes","wind_game","home_pitcher_name","away_pitcher_name","NRFI"
-718778,1,"San Diego Padres","Colorado Rockies","0","1","Petco Park","56","Partly Cloudy","7 mph, L To R","Blake Snell","Germán Márquez",0
-718779,1,"Texas Rangers","Philadelphia Phillies","1","0","Globe Life Field","69","Cloudy","12 mph, Varies","Jacob deGrom","Aaron Nola",1
-718780,1,"Washington Nationals","Atlanta Braves","0","1","Nationals Park","45","Sunny","8 mph, Out To RF","Patrick Corbin","Max Fried",1
+"home_team_name","away_team_name","home_team_record_wins","away_team_record_wins","venue_name","temp_game","weather","home_pitcher_name","away_pitcher_name","NRFI"
+"San Diego Padres","Colorado Rockies","0","1","Petco Park","56","Partly Cloudy","Blake Snell","Germán Márquez",0
+"Texas Rangers","Philadelphia Phillies","1","0","Globe Life Field","69","Cloudy","Jacob deGrom","Aaron Nola",1
+"Washington Nationals","Atlanta Braves","0","1","Nationals Park","45","Sunny","Patrick Corbin","Max Fried",1
