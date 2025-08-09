@@ -31,23 +31,46 @@ pacman::p_load_current_gh("BillPetti/baseballr")
 pacman::p_load(tidyverse,
                reticulate,
                purrr,
-               progress)
+               furrr,
+               future)
 ```
 
 ```{r}
-# Massive list of game IDs
-game_ids <- c(718778, 718779, 718780) 
-
 # Safe wrappers
 safe_linescore <- safely(mlb_game_linescore)
 safe_gameinfo  <- safely(mlb_game_info)
 safe_probables <- safely(mlb_probables)
+safe_game_pks <- safely(mlb_game_pks)
 
-# Progress bar
-pb <- progress_bar$new(total = length(game_ids))
+# Parallel plan: use all but 1 core
+plan(multisession, workers = parallel::detectCores() - 1)
+
+# Acquire game pk's ##########################################################################
+# Define date range (last 6 seasons)
+start_date <- as.Date("2019-03-01")  # start of 2019 season
+end_date <- as.Date("2024-11-01")    # end of 2024 season
+
+# Create sequence of dates
+dates <- seq.Date(start_date, end_date, by = "day") %>%
+  .[month(.) %in% 3:10]  # MLB regular season roughly March-October
+
+# Get game PKs in parallel
+game_pks <- future_map_dfr(dates, function(date) {
+  res <- safe_game_pks(as.character(date), level_ids = c(1))
+  if (!is.null(res$result)) {
+    return(res$result)
+  } else {
+    return(NULL)
+  }
+}, .progress = TRUE)
+
+# Remove duplicates and select pk vector
+game_ids <- distinct(game_pks, game_pk) %>% pull(game_pk)
 
 # Fetch inning-by-inning data ################################################################
-all_games_data <- map_df(game_ids, ~ { pb$tick(); safe_linescore(.x)$result })
+# Fetch inning-by-inning data in parallel
+all_games_data <- future_map_dfr(game_ids, ~ safe_linescore(.x)$result, .progress = TRUE)
+
 
 # Filter to inning 1, keep only pre-game predictors + outcome vars for target creation
 inning_1_data <- all_games_data %>%
@@ -62,7 +85,21 @@ inning_1_data <- all_games_data %>%
          away_team_record_wins)
 
 # Fetch weather data #########################################################################
-weather_data <- map_df(game_ids, ~ safe_gameinfo(.x)$result)
+# Fetch weather data in parallel
+weather_data <- future_map_dfr(game_ids, function(id) {
+  res <- safe_gameinfo(id)
+  df <- res$result
+  if (!is.null(df)) {
+    # Force attendance to character to avoid type conflicts
+    if ("attendance" %in% names(df)) {
+      df$attendance <- as.character(df$attendance)
+    }
+    return(df)
+  } else {
+    return(NULL)
+  }
+}, .progress = TRUE)
+
 
 # Clean and rename to avoid collisions
 weather_data_clean <- weather_data %>%
@@ -71,8 +108,9 @@ weather_data_clean <- weather_data %>%
          temp_game = temperature,
          weather = other_weather)
 
-# Fetch starting pitcher and umpire data #####################################################
-pitcher_data <- map_df(game_ids, ~ safe_probables(.x)$result)
+# Fetch starting pitcher data ###############################################################
+# Fetch pitcher data in parallel
+pitcher_data <- future_map_dfr(game_ids, ~ safe_probables(.x)$result, .progress = TRUE)
 
 # Extract home and away teams from original data
 game_teams = all_games_data %>%
@@ -190,5 +228,31 @@ joblib.dump(model, "xgb_game_model.pkl")
 
 ```{python}
 # Streamlit Web App
+# Load model
+model = joblib.load("xgb_game_model.pkl")
 
+st.title("Game Outcome Predictor")
+
+# Example input variables
+home_team = st.selectbox("Home Team", ["Yankees", "Dodgers", "Cubs"])
+away_team = st.selectbox("Away Team", ["Yankees", "Dodgers", "Cubs"])
+temperature = st.slider("Temperature (°F)", 30, 100)
+wind_speed = st.slider("Wind Speed (mph)", 0, 20)
+
+# Create dataframe for prediction
+input_df = pd.DataFrame({
+    "home_team": [home_team],
+    "away_team": [away_team],
+    "temperature": [temperature],
+    "wind_speed": [wind_speed]
+})
+
+if st.button("Predict"):
+    prediction = model.predict(input_df)[0]
+    st.write(f"Predicted outcome: {prediction}")
+```
+
+```{bash}
+# Run App
+streamlit run app.py
 ```
