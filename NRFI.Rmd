@@ -160,7 +160,7 @@ inning_1_final <- inning_1_data %>%
 write.csv(inning_1_final, "inning_1_data.csv", row.names = FALSE)
 ```
 
-model creation, training, testing, optimizing in Python
+model creation, training, testing, optimizing in Python (switching to real python IDE)
 
 ```{python}
 # Load packages
@@ -175,20 +175,18 @@ import joblib
 ```
 
 ```{python}
-# ===== Step 1: Load your CSV =====
-# Replace with your file path
-df = pd.read_csv("your_file.csv")
+# ===== Step 1: Load CSV =====
+df = pd.read_csv("inning_1_data.csv")
 
 # ===== Step 2: Separate features (X) and target (y) =====
-# Replace 'target_column' with your target variable name
-X = df.drop(columns=["target_column"])
-y = df["target_column"]
+X = df.drop(columns=["NRFI"])
+y = df["NRFI"]
 
 # ===== Step 3: Identify categorical & numeric columns =====
 categorical_cols = X.select_dtypes(include=["object", "category"]).columns
 numeric_cols = X.select_dtypes(exclude=["object", "category"]).columns
 
-# ===== Step 4: Build preprocessing for categorical data =====
+# ===== Step 4: Build preprocessing =====
 preprocessor = ColumnTransformer(
     transformers=[
         ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols),
@@ -196,12 +194,12 @@ preprocessor = ColumnTransformer(
     ]
 )
 
-# ===== Step 5: Create the XGBoost model pipeline =====
+# ===== Step 5: Create pipeline with XGBoost =====
 model = Pipeline(steps=[
     ("preprocessor", preprocessor),
     ("classifier", XGBClassifier(
-        objective="binary:logistic",  # Change if multi-class
-        eval_metric="logloss", 
+        objective="binary:logistic",
+        eval_metric="logloss",
         use_label_encoder=False
     ))
 ])
@@ -211,13 +209,12 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-# ===== Step 7: Train the model =====
+# ===== Step 7: Train =====
 model.fit(X_train, y_train)
 
-# ===== Step 8: Predictions and accuracy =====
+# ===== Step 8: Evaluate =====
 y_pred = model.predict(X_test)
 acc = accuracy_score(y_test, y_pred)
-
 print(f"Accuracy: {acc:.2f}")
 ```
 
