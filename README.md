@@ -1,5 +1,5 @@
 # NRFI Prediction Model (below info to be replaced)
-*Personal project to explore ML models in sports betting.*
+*Description.*
   
   
 ## Project Intro/Objective
